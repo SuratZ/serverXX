@@ -1,0 +1,54 @@
+
+# Stop logging servers
+systemctl stop rsyslog > /dev/null
+ systemctl stop auditd > /dev/null
+
+# Update packages
+/usr/bin/yum update -q -y
+
+
+# Clean yum
+/usr/bin/yum clean -q all
+
+# Force logs rotate and remove old logs
+/usr/sbin/logrotate -f /etc/logrotate.conf
+
+# Truncate the audit logs
+/bin/cat /dev/null > /var/log/audit/audit.log
+/bin/cat /dev/null > /var/log/wtmp
+/bin/cat /dev/null > /var/log/lastlog
+/bin/cat /dev/null > /var/log/grubby
+
+
+# Clean /tmp
+/bin/rm -rf /tmp/*
+/bin/rm -rf /var/tmp/*
+
+
+# Remove root's SSH history and other cruft
+/bin/rm -rf ~root/.ssh/known_hosts
+
+# Remove root's and users history
+/bin/rm -f ~root/.bash_history
+/bin/rm -f /home/*/.bash_history
+unset HISTFILE
+
+
+# let's randomise the root password
+#drs-head -n1 /dev/urandom | md5sum | awk {'print $1'} | passwd --stdin root
+# no password ssh root login allowed
+#drs-sed -i -e 's/^PasswordAuthentication yes.*/PasswordAuthentication no/g' /etc/ssh/sshd_config
+# let's clean it up a bit
+rm -rf /etc/ssh/*key*
+rm -f /etc/udev/rules.d/*-persistent-*
+sed -i '/HWADDR/d' /etc/sysconfig/network-scripts/ifcfg-eth0
+sed -i '/UUID/d' /etc/sysconfig/network-scripts/ifcfg-eth0
+sed -i '/HWADDR/d' /etc/sysconfig/network-scripts/ifcfg-ens33
+sed -i '/UUID/d' /etc/sysconfig/network-scripts/ifcfg-ens33
+sed -i 's,UUID=[^[:blank:]]*,/dev/sda1,' /etc/fstab
+rm -f /root/anaconda-ks.cfg
+rm -f /root/install.log
+rm -f /root/install.log.syslog
+find /var/log -type f -delete
+init 0
+
